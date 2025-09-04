@@ -1,14 +1,24 @@
 
 # Полезные ссылки:
+
 [Репозиторий unitree_sdk2(C++)](https://github.com/unitreerobotics/unitree_sdk2)
+
 [Репозиторий unitree_sdk2_python (Python)](https://github.com/unitreerobotics/unitree_sdk2_python)
+
 [Репозиторий unitree_ROS2 (C++)](https://github.com/unitreerobotics/unitree_ros2)
+
 [Информация о модуле рук от производителя Inspire hands](https://support.unitree.com/home/en/H1_developer/Dexterous_hand)
+
 [For developers from unitreerobotics](https://support.unitree.com/home/en/H1_developer/About_H1)	
+
 [OpenSource-ресурсы с официального сайта](https://www.unitree.com/opensource)
+
 [Github разработчиков](https://github.com/unitreerobotics)
+
 [Структуры сообщений](https://support.unitree.com/home/en/H1_developer/Basic_Services_Interface)
+
 [Высокоуровневое управление от официалов](https://support.unitree.com/home/en/H1_developer/Sports_Services_Interface)
+
 [Наш аккаунт на gihub](https://github.com/cyberbanana777)
 
 ### **Комментарий по репозиториям**:
@@ -19,13 +29,15 @@
 [Пример №1](https://github.com/unitreerobotics/unitree_ros2/blob/master/example/src/src/read_low_state.cpp)
 
 **SDK_python**
+
 [Пример №2](https://github.com/unitreerobotics/unitree_sdk2_python/blob/master/example/h1/low_level/h1_low_level_example.py) (Требует перевода в `режим разработки` . См. ниже )
+
 [Пример №3](https://github.com/unitreerobotics/unitree_sdk2_python/blob/master/example/wireless_controller/wireless_controller.py)(Здесь для корректной работы необходимо закомментить 12 и 13 строчку и раскомментить 8 и 9)
 
 # Общие моменты
 [Соответствие моторов и их индексов](https://support.unitree.com/home/en/H1_developer/Joint_motor_sequence)
-![[Unitree_joints.png]]
-![[Unitree_joints_with_indexes_full.png]]
+![Unitree_joints](src/Unitree_joints.png)
+![Unitree_joints_with_indexes_full](src/Unitree_joints_with_indexes_full.png)
 ### Важный момент при работе с sdk.
 При запуске скрипта на роботе указывать интерфейс подключения не обязательно. Он его сам подтянет. При запуске с локальной машины (своего ноута к примеру) интерфейс необходимо указать __обязательно__! Иначе управляющие команды могут слаться туда, куда не нужно.
 
@@ -71,7 +83,9 @@
 
 #### Подключение по SSH
 Подключение к PC2 возможно по следующей команде:
-`ssh unitree@192.168.123.162`
+```bash
+ssh unitree@192.168.123.162
+```
 Далее будет запрошен пароль. Необходимо ввести:
 `Unitree0408`
 
@@ -89,7 +103,8 @@ sudo ip route add default via 192.168.123.1 dev eth0
 
 ## Особенности работы 
 У робота есть несколько режимов. 
-![[Состояния H1.png]]Возможно несколько возможностей управлять роботом
+![Состояния робота](/src/Состояния_H1.png)
+Возможно несколько возможностей управлять роботом
 1. С пульта ДУ
 2. Командами верхнего уровня "High_level"
 3. Командами нижнего уровня "Low_level"
@@ -132,13 +147,17 @@ ROS2 в данной конфигурации использует в качес
 - `arm_sdk` - Через него можно управлять верхней частью робота через Low level
 - `api/motionswitcher/request` - здесь можно отследить запрос на переход в другой режим (`develop`/`режим высокоуровневого управления`)
 - `api/motionswitcher/response` - ответ на запрос о смене режима.
+- `api/loco/request` - здесь можно отследить запрос управление роботом (например задача выполнения танца, перехода в состояние балансирования и т.д)
+- `api/loco/response` - ответ на запрос о реализации желаемой задачи.
+- `odommodestate` - содержит информацию об одометрии (координаты x, y, z) и скорость вращения вокруг оси z.
+
 
 ### Координаты робота
 Робот инициализирует координаты при включении. Энкодеры на моторах относительные, т.е. положение из которого Вы запускаете робота должно быть не произвольным, а вполне конкретным (указано на рисунке). Более подробную информацию можно найти [здесь](https://docs.quadruped.de/projects/h1/html/controller.html)
 
-![[Стартовое положение 1.gif]]
-![[Стартовое положение 2.png]]
-![[Стартовое положение. Обзор.png]]
+![Стартовое положение 1](src/Стартовое_положение_1.gif)
+![Стартовое положение 2](src/Стартовое_положение_2.png)
+![Стартовое положение обзор](src/Стартовое_положение_Обзор.png)
 
 
 ## Как управлять руками во время движения
@@ -164,7 +183,8 @@ ROS2 в данной конфигурации использует в качес
 Лидар может работать в 2 режимах:
 - Генерирует сообщения custom-формата, разработанного Livox
 - Генерирует сообщения типа `PointCloud2`
-Также при запуске лидар в любом случае публикует информацию из imu, который находится внутри лидара и имеет аппаратную синхронизацию с публикаций точек. 
+
+Также при запуске лидар с любым типом сообщения публикует информацию с imu, который находится внутри лидара и имеет аппаратную синхронизацию с публикаций точек. 
 
 ## Камера
 > Находится в разработке...
