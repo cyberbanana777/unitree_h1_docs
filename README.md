@@ -39,7 +39,7 @@
 
 # Общие моменты
 [Соответствие моторов и их индексов](https://support.unitree.com/home/en/H1_developer/Joint_motor_sequence)
-![Unitree_joints](src/Unitree_joints.png)
+![Unitree_joints](src/Unitree_joints.jpg)
 ![Unitree_joints_with_indexes_full](src/Unitree_joints_with_indexes_full.png)
 ### Важный момент при работе с sdk.
 При запуске скрипта на роботе указывать интерфейс подключения не обязательно. Он его сам подтянет. При запуске с локальной машины (своего ноута к примеру) интерфейс необходимо указать __обязательно__! Иначе управляющие команды могут слаться туда, куда не нужно.
