@@ -85,3 +85,9 @@ pre {
   font-size: 10pt;
   color: #555;
 }
+
+/* Скрыть дату и название файла, если они добавлены как элементы в документ */
+.date,
+.title {
+  display: none !important;
+}
