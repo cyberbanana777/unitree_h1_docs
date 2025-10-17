@@ -115,7 +115,7 @@ python3 unitree_mujoco.py
 
 Сейчас симуляция не "общается" с ROS2. Нужно указать правильный сетевой интерфейс.
 
-1. Открой файл настроек:
+1. Откройте файл настроек:
 
    ```bash
    cd ~/unitree_mujoco_mirea_olympiad/simulate_python
@@ -126,13 +126,13 @@ python3 unitree_mujoco.py
 
    ![Оригинальная конфигурация запуска MuJoCo](photo_for_instructions/mujoco/config_mujoco1.png)
 
-2. Открой **новый терминал** и выполни:
+2. Откройте **новый терминал** и выполните:
 
    ```bash
    ip a
    ```
 
-   Найди активный сетевой интерфейс (обычно `wlan0`, `eth0` или `enp...`):
+   Найдите активный сетевой интерфейс (обычно `wlan0`, `eth0` или `enp...`):
 
    ![Где посмотреть сетевой интерфейс](photo_for_instructions/mujoco/net_interface.png)
 
