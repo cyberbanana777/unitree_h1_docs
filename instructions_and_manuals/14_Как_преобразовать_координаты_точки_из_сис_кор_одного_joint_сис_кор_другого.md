@@ -170,55 +170,41 @@ from geometry_msgs.msg import PointStamped
 from tf2_ros import Buffer, TransformListener
 from tf2_geometry_msgs import do_transform_point
 
-class SimpleTFNode(Node):
+class RobustTFNode(Node):
     def __init__(self):
-        super().__init__('simple_tf_node')
+        super().__init__('robust_tf_node')
         self.tf_buffer = Buffer()
         self.tf_listener = TransformListener(self.tf_buffer, self)
-        self.get_logger().info("TF node started")
+        self.timer = self.create_timer(0.5, self.timer_callback)  # 2 Hz
+        self.get_logger().info("Robust TF node started")
+
+    def timer_callback(self):
+        try:
+            result = self.convert_point([0.1, 0.2, 0.3], 'pelvis', 'right_shoulder_pitch_link') # 'pelvis' - система координат таза робота, 'right_shoulder_pitch_link' - система координат плечавого сустава, замените на желаемые после теста
+            if result:
+                self.get_logger().info(f"Transform: {result}")
+            else:
+                self.get_logger().warning("TF not available yet, but still running...")
+        except Exception as e:
+            self.get_logger().error(f"Callback error: {e} - BUT CONTINUING!")
 
     def convert_point(self, point, source_frame, target_frame):
         try:
-            # Получаем трансформацию
-            transform = self.tf_buffer.lookup_transform(
-                target_frame,
-                source_frame, 
-                rclpy.time.Time()
-            )
-            
-            # Создаем точку для преобразования
-            point_msg = PointStamped()
-            point_msg.header.frame_id = source_frame
-            point_msg.point.x = point[0]
-            point_msg.point.y = point[1]
-            point_msg.point.z = point[2]
-            
-            # Применяем трансформацию
-            new_point = do_transform_point(point_msg, transform)
-            
-            return [new_point.point.x, new_point.point.y, new_point.point.z]
-            
-        except Exception as e:
-            self.get_logger().error(f"Transform failed: {e}")
+            if self.tf_buffer.can_transform(target_frame, source_frame, rclpy.time.Time(), timeout=rclpy.duration.Duration(seconds=1.0)):
+                transform = self.tf_buffer.lookup_transform(target_frame, source_frame, rclpy.time.Time())
+                point_msg = PointStamped()
+                point_msg.header.frame_id = source_frame
+                point_msg.point.x, point_msg.point.y, point_msg.point.z = point
+                new_point = do_transform_point(point_msg, transform)
+                return [new_point.point.x, new_point.point.y, new_point.point.z]
+            return None
+        except:
             return None
 
 def main():
     rclpy.init()
-    node = SimpleTFNode()
-    
-    # Пример использования
-    original_point = [1.0, 0.5, 0.2]
-    
-    result = node.convert_point(
-        original_point,
-        'right_hip_roll_link',  # исходный фрейм
-        'right_hip_pitch_link'   # целевой фрейм
-    )
-    
-    if result:
-        node.get_logger().info(f"Original: {original_point}")
-        node.get_logger().info(f"Transformed: {result}")
-    
+    node = RobustTFNode()
+    rclpy.spin(node)
     node.destroy_node()
     rclpy.shutdown()
 
@@ -226,9 +212,9 @@ if __name__ == '__main__':
     main()
 ```
 
-### Построчное объяснение работы ноды
+## Построчное объяснение работы ноды
 
-#### Импорты необходимых модулей
+### **1. Импорты и зависимости**
 ```python
 #!/usr/bin/env python3
 import rclpy
@@ -237,93 +223,126 @@ from geometry_msgs.msg import PointStamped
 from tf2_ros import Buffer, TransformListener
 from tf2_geometry_msgs import do_transform_point
 ```
-- **`rclpy`** - основной модуль ROS2 для Python
-- **`Node`** - базовый класс для создания ROS2-нод
-- **`PointStamped`** - тип сообщения для точки с указанием системы координат и времени
-- **`Buffer`, `TransformListener`** - компоненты TF2 для работы с преобразованиями координат
-- **`do_transform_point`** - функция для применения трансформации к точке
 
-#### Инициализация ноды
+**Что это значит:**
+- `rclpy` - основной модуль ROS 2 для Python
+- `Node` - базовый класс для создания ROS 2 нод
+- `PointStamped` - сообщение для точки с указанием системы координат
+- `Buffer` и `TransformListener` - для работы с TF (трансформациями)
+- `do_transform_point` - функция для применения трансформации к точке
+
+---
+
+### **2. Создание класса ноды**
 ```python
-class SimpleTFNode(Node):
+class RobustTFNode(Node):
     def __init__(self):
-        super().__init__('simple_tf_node')
-        self.tf_buffer = Buffer()
-        self.tf_listener = TransformListener(self.tf_buffer, self)
-        self.get_logger().info("TF node started")
+        super().__init__('robust_tf_node')
 ```
-- **`super().__init__('simple_tf_node')`** - создаем ноду с именем `simple_tf_node`
-- **`tf_buffer`** - буфер, который хранит историю трансформаций между фреймами
-- **`tf_listener`** - слушатель, который автоматически заполняет буфер актуальными трансформациями
-- **`get_logger().info()`** - вывод информационного сообщения при запуске
 
-#### Метод преобразования точки
+**Объяснение:**
+- `RobustTFNode` - наш собственный класс ноды, наследуется от `Node`
+- `super().__init__('robust_tf_node')` - вызывает конструктор родительского класса и задает имя ноды
+- Имя ноды `'robust_tf_node'` будет видно в ROS 2 системе
+
+---
+
+### **3. Инициализация TF системы**
+```python
+self.tf_buffer = Buffer()
+self.tf_listener = TransformListener(self.tf_buffer, self)
+```
+
+**Как это работает:**
+- `Buffer()` - создает буфер для хранения трансформаций
+- `TransformListener()` - слушает топики TF и заполняет буфер
+- 📊 **Аналогия**: Представьте что `Buffer` - это блокнот, а `TransformListener` - секретарь, который записывает в него все изменения положений объектов
+
+---
+
+### **4. Таймер и периодичность**
+```python
+self.timer = self.create_timer(0.5, self.timer_callback)  # 2 Hz
+```
+
+**Что происходит:**
+- `create_timer(0.5, callback)` - создает таймер, который вызывает функцию каждые 0.5 секунд
+- **2 Hz** - 2 раза в секунду
+- `timer_callback` - функция, которая будет выполняться по таймеру
+
+---
+
+### **5. Основной цикл - timer_callback**
+```python
+def timer_callback(self):
+    try:
+        result = self.convert_point([0.1, 0.2, 0.3], 'pelvis', 'right_shoulder_pitch_link')
+        if result:
+            self.get_logger().info(f"Transform: {result}")
+        else:
+            self.get_logger().warning("TF not available yet, but still running...")
+    except Exception as e:
+        self.get_logger().error(f"Callback error: {e} - BUT CONTINUING!")
+```
+
+**Пошагово:**
+1. **Каждые 0.5 секунд** вызывается эта функция
+2. **Пытается преобразовать** точку `[0.1, 0.2, 0.3]` из системы `pelvis` в `right_shoulder_pitch_link`
+3. **Если успешно** - выводит результат
+4. **Если нет** - предупреждает, но продолжает работу
+5. **При любой ошибке** - пишет в лог, но НЕ останавливается
+
+---
+
+### **6. Функция преобразования координат**
 ```python
 def convert_point(self, point, source_frame, target_frame):
     try:
-        # Получаем трансформацию
-        transform = self.tf_buffer.lookup_transform(
-            target_frame,
-            source_frame, 
-            rclpy.time.Time()
-        )
-```
-- **`lookup_transform(target, source, time)`** - запрос трансформации:
-  - `target_frame` - целевая система координат (куда преобразуем)
-  - `source_frame` - исходная система координат (откуда преобразуем)
-  - `rclpy.time.Time()` - время трансформации (0 = последняя доступная)
-
-```python
-        # Создаем точку для преобразования
-        point_msg = PointStamped()
-        point_msg.header.frame_id = source_frame
-        point_msg.point.x = point[0]
-        point_msg.point.y = point[1]
-        point_msg.point.z = point[2]
-```
-- Создаем сообщение **`PointStamped`** - точка с "штампом":
-  - `header.frame_id` - указываем систему координат точки
-  - `point.x, y, z` - координаты точки в исходной системе
-
-```python
-        # Применяем трансформацию
-        new_point = do_transform_point(point_msg, transform)
-        
-        return [new_point.point.x, new_point.point.y, new_point.point.z]
-```
-- **`do_transform_point(point, transform)`** - применяет матрицу трансформации к точке
-- Возвращаем новые координаты в виде списка `[x, y, z]`
-
-#### Обработка ошибок
-```python
-    except Exception as e:
-        self.get_logger().error(f"Transform failed: {e}")
+        if self.tf_buffer.can_transform(target_frame, source_frame, rclpy.time.Time(), timeout=rclpy.duration.Duration(seconds=1.0)):
+            transform = self.tf_buffer.lookup_transform(target_frame, source_frame, rclpy.time.Time())
+            point_msg = PointStamped()
+            point_msg.header.frame_id = source_frame
+            point_msg.point.x, point_msg.point.y, point_msg.point.z = point
+            new_point = do_transform_point(point_msg, transform)
+            return [new_point.point.x, new_point.point.y, new_point.point.z]
+        return None
+    except:
         return None
 ```
-- Ловим исключения если:
-  - Трансформация между фреймами не найдена
-  - Фреймы не существуют
-  - Истек таймаут ожидания
 
-#### Основная функция
+**Детальный разбор:**
+
+#### **Шаг 1: Проверка доступности трансформации**
 ```python
-def main():
-    rclpy.init()
-    node = SimpleTFNode()
-    
-    # Пример использования
-    original_point = [1.0, 0.5, 0.2]
-    
-    result = node.convert_point(
-        original_point,
-        'pelvis',  # исходный фрейм
-        'right_knee_link'   # целевой фрейм
-    )
+self.tf_buffer.can_transform(target_frame, source_frame, rclpy.time.Time(), timeout=1.0)
 ```
-- **`rclpy.init()`** - инициализация ROS2
-- Создаем экземпляр ноды
-- Задаем тестовую точку `[1.0, 0.5, 0.2]`
-- Вызываем преобразование из `frame_a` в `frame_b`
+- **Проверяет**: Можно ли преобразовать из `source_frame` в `target_frame`?
+- **timeout=1.0**: Ждет до 1 секунды
+- **Возвращает**: `True` если трансформация доступна, `False` если нет
+
+#### **Шаг 2: Получение трансформации**
+```python
+transform = self.tf_buffer.lookup_transform(target_frame, source_frame, rclpy.time.Time())
+```
+- **Получает** математическое преобразование между системами координат
+- 📍 **Важно порядок**: `target_frame`, `source_frame` - "куда", "откуда"
+
+#### **Шаг 3: Создание точки для преобразования**
+```python
+point_msg = PointStamped()
+point_msg.header.frame_id = source_frame
+point_msg.point.x, point_msg.point.y, point_msg.point.z = point
+```
+- `PointStamped()` - создает сообщение "точка с меткой времени и системой координат"
+- `header.frame_id` - указывает в какой системе координат находится точка
+
+#### **Шаг 4: Применение трансформации**
+```python
+new_point = do_transform_point(point_msg, transform)
+```
+- **Математически применяет** трансформацию к точке
+- **Возвращает** ту же точку, но в новой системе координат
+   
 
 ## Инструкция по запуску ноды
 
@@ -331,7 +350,7 @@ def main():
 
 Создайте ROS2 пакет `simple_tf_demo` в папке `/src` вашей `_ws` или откройте уже апку уже сущесвтующего пакета `<ваш_пакет>/<ваш_пакет>`, создайте файл `simple_tf_node.py`. 
 
-Подробнее о создании ROS2 пакета и его структуре смотрите в методическом указании 6.3 "Публикатор и подписчик".
+Подробнее о создании ROS2 пакета и его структуре смотрите в методическом указании [6_3_Публикатор_и_подписчик](https://github.com/cyberbanana777/unitree_h1_docs/blob/main/instructions_and_manuals/6_3_Публикатор_и_подписчик.md).
 
 ### 2. Настройка файла package.xml
 
@@ -374,12 +393,15 @@ ros2 launch completed_scripts_visualization show.launch.py mode:=without_hands l
 ros2 run simple_tf_demo simple_tf_node
 ```
 
-## Ожидаемый вывод
+## 🔄 **Пример работы ноды:**
 
 ```
-[INFO] [simple_tf_node]: TF node started
-[INFO] [simple_tf_node]: Original: [1.0, 0.5, 0.2]
-[INFO] [simple_tf_node]: Transformed: [2.0, 0.5, 0.2]
+[INFO] [1761251684.294985257] [continuous_tf_node]: Continuous TF node started - will keep running even with errors
+[INFO] [1761251684.390243757] [continuous_tf_node]: [1] Transform OK: [0.0945, 0.3769926948296918, 0.032365578089181335]
+[INFO] [1761251686.487127476] [continuous_tf_node]: [22] Transform OK: [0.0945, 0.3769926948296918, 0.032365578089181335]
+[INFO] [1761251688.488670306] [continuous_tf_node]: [42] Transform OK: [0.0945, 0.3769926948296918, 0.032365578089181335]
+[INFO] [1761251690.587000672] [continuous_tf_node]: [63] Transform OK: [0.0945, 0.3769926948296918, 0.032365578089181335]
+^C[INFO] [1761251691.009605015] [continuous_tf_node]: Node stopped by user
 ```
 
-(Точка сместилась по X на 1 метр)
+**Нода будет работать всегда**, пока вы не остановите ее вручную.
