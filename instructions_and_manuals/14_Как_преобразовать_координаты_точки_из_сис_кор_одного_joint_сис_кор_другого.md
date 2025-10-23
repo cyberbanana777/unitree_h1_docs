@@ -14,26 +14,26 @@
 
 *   **Полный запуск с визуализацией в Rviz** (используется для отладки и визуального контроля):
     ```bash
-    ros2 launch h1_description description.launch.py mode:=without_hands launch_rviz:=True
+    ros2 launch completed_scripts_visualization show.launch.py mode:=without_hands launch_rviz:=True robot:=simulation
     ```
 
 *   **Запуск без визуализации:**
     ```bash
-    ros2 launch h1_description description.launch.py mode:=without_hands
+    ros2 launch completed_scripts_visualization show.launch.py mode:=without_hands robot:=simulation
     ```
 
 ### Просмотр доступных аргументов launch-файла
 
 Чтобы увидеть все доступные аргументы launch-файла и их значения по умолчанию (что позволяет гибко настроить запуск для разных ситуаций: работа с реальным роботом, симуляция и т.д.), используйте команду:
 ```bash
-ros2 launch h1_description description.launch.py -s
+ros2 launch completed_scripts_visualization show.launch.py -s
 ```
 
 ### Принцип работы системы преобразований
 
-Для публикации преобразований в указанном launch-файле запускаются две ноды: `joint_state_publisher` и `robot_state_publisher`. 
+Для публикации преобразований в указанном launch-файле запускаются две ноды: `robot_state_publisher`. 
 
-`robot_state_publisher` использует URDF, указанный в параметре `robot_description`, и положения суставов из топика `joint_states`, публикуемого `joint_state_publisher`, для расчёта прямой кинематики робота (преобразований между системами координат) и публикации результатов через `tf`.
+`robot_state_publisher` использует URDF, указанный в параметре `robot_description`, и положения суставов из топика `joint_states` для расчёта прямой кинематики робота (преобразований между системами координат) и публикации результатов через `tf`.
 
 ### Проверка работоспособности преобразований
 
@@ -118,7 +118,7 @@ Point: P₁ = [0.1, 0.2, 0.3]
 ### Преобразование кватерниона в матрицу поворота
 
 #### Формула кватерниона:
-q = [x, y, z, w] = [qₓ, qᵧ, q₂, q_w]
+q = [x, y, z, w] = [qₓ, qᵧ, q_z, q_w]
 
 #### Матрица поворота из кватерниона:
 
@@ -211,8 +211,8 @@ def main():
     
     result = node.convert_point(
         original_point,
-        'frame_a',  # исходный фрейм
-        'frame_b'   # целевой фрейм
+        'right_hip_roll_link',  # исходный фрейм
+        'right_hip_pitch_link'   # целевой фрейм
     )
     
     if result:
@@ -316,8 +316,8 @@ def main():
     
     result = node.convert_point(
         original_point,
-        'frame_a',  # исходный фрейм
-        'frame_b'   # целевой фрейм
+        'pelvis',  # исходный фрейм
+        'right_knee_link'   # целевой фрейм
     )
 ```
 - **`rclpy.init()`** - инициализация ROS2
@@ -329,7 +329,7 @@ def main():
 
 ### 1. Создание ROS2 пакета
 
-Создайте ROS2 пакет `simple_tf_demo` или откройте уже существующий. В папке `/src` создайте файл `simple_tf_node.py`. 
+Создайте ROS2 пакет `simple_tf_demo` в папке `/src` вашей `_ws` или откройте уже апку уже сущесвтующего пакета `<ваш_пакет>/<ваш_пакет>`, создайте файл `simple_tf_node.py`. 
 
 Подробнее о создании ROS2 пакета и его структуре смотрите в методическом указании 6.3 "Публикатор и подписчик".
 
@@ -367,7 +367,7 @@ source install/setup.bash
 
 ```bash
 # Terminal 1 - Запускаем систему трансформаций (с визуализацией в rviz)
-ros2 launch h1_description description.launch.py mode:=without_hands launch_rviz:=True
+ros2 launch completed_scripts_visualization show.launch.py mode:=without_hands launch_rviz:=True robot:=simulation
 ```
 ```bash
 # Terminal 2 - Запускаем нашу ноду
@@ -382,4 +382,4 @@ ros2 run simple_tf_demo simple_tf_node
 [INFO] [simple_tf_node]: Transformed: [2.0, 0.5, 0.2]
 ```
 
-(Точка сместилась по X на 1 метр, так как мы задали смещение между frame_a и frame_b)
+(Точка сместилась по X на 1 метр)
