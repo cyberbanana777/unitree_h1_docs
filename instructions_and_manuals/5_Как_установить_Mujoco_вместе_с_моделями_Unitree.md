@@ -155,7 +155,9 @@ cd ~/unitree_mujoco_mirea_olympiad/simulate_python
 python3 unitree_mujoco.py
 ```
 
-Теперь робот должен двигаться, и симуляция будет работать корректно, пример в коротком видео по ссылке:
+Теперь робот должен двигаться, и симуляция будет работать корректно, пример в коротком видео здесь или ниже по ссылке:
+
+![](./photo_for_instructions/mujoco/Симуляция_при_корректном_запуске_гифка.gif)
 
 [Unitree H1 в mujoco при корректном запуске](https://disk.yandex.ru/i/a1jsti4PgwaFvA)
 
